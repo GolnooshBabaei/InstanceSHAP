@@ -79,7 +79,7 @@ class PrepareData:
 if __name__ == '__main__':
     cl = PrepareData()
     df = cl.getdata()
-
+    df = df.iloc[:10,:]
     print(df.head())
     print(df.shape)
     print(df.isna().sum())
