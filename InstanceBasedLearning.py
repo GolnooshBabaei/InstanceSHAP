@@ -1,30 +1,47 @@
+from sklearn.model_selection import train_test_split
 from InstanceSHAP.Data_preprocessing import PrepareData
+from sklearn.ensemble import RandomForestClassifier
 import numpy as np
 import pandas as pd
-
 
 
 class INSTANCEBASEDSHAP:
 
     def __init__(self):
-        pass
+        self.y_test = None
+        self.y_train = None
+        self.x_test = None
+        self.x_train = None
+        self.pd_test = None
+        self.pd_train = None
 
     def read_data(self):
         data_class = PrepareData()
         data = PrepareData.getdata(data_class)
-        return data
+        ## To reduce the computation time, I use 0.3 of each class available in the dataset
+        data = data.groupby('label', group_keys=False).apply(lambda x: x.sample(frac=0.3))
+        x = data.drop('label', axis=1)
+        y = data['label']
+        self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(x, y, test_size=0.3, stratify=y)
+        return self.x_train, self.x_test, self.y_train, self.y_test
+
+    def get_model_predictions(self):
+        ml_model = RandomForestClassifier(random_state=123).fit(self.x_train, self.y_train)
+        self.pd_test = ml_model.predict_proba(self.x_test)[:, 1]
+        self.pd_train = ml_model.predict_proba(self.x_train)[:, 1]
+        return self.pd_test, self.pd_train
 
     def calc_kernel(self, u):
         kernel = (1 / np.sqrt(2 * np.pi)) * (1 / np.exp(0.5 * (u ** 2)))
         return kernel
 
-    def find_similarities(self, xtrain, xtest, train_prediction, test_prediction):
+    def find_similarities(self):
         d = []
-        for i in range(len(xtrain)):
-            for j in range(len(xtest)):
-                d.append(train_prediction[i] - test_prediction[j])
+        for i in range(len(self.x_train)):
+            for j in range(len(self.x_test)):
+                d.append(self.pd_train[i] - self.pd_test[j])
         d_arr = np.array(d)
-        d = pd.DataFrame(np.array_split(d_arr, len(xtrain)))
+        d = pd.DataFrame(np.array_split(d_arr, len(self.x_train)))
         return d
 
     def run_model(self):
@@ -118,3 +135,13 @@ class INSTANCEBASEDSHAP:
             shapleyvalues_df = pd.DataFrame(shapleyvalues[1], columns=xtest.columns)
             global_shapleyvalues = np.mean(np.abs(shapleyvalues_df), axis=0)
         return global_shapleyvalues
+
+
+if __name__ == '__main__':
+    c = INSTANCEBASEDSHAP()
+    data = c.read_data()
+    model = c.get_model_predictions()
+    d = c.find_similarities()
+
+    print(d)
+    print(d.shape)

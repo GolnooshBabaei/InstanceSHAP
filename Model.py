@@ -20,7 +20,7 @@ class classifiers():
     def train_test(self):
         d = PrepareData()
         data = PrepareData.getdata(d)
-        #data = data.iloc[:1000, :]
+        data = data.iloc[:1000, :]
         x = data.drop('label', axis=1)
         y = data['label']
         self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(x, y, test_size=0.3, stratify=y)
@@ -34,13 +34,16 @@ class classifiers():
     def rf_model(self):
         rf = RandomForestClassifier(random_state=123).fit(self.x_train, self.y_train)
 
+        pd_test = rf.predict_proba(self.x_test)[:, 1]
+        pd_train = rf.predict_proba(self.x_train)[:, 1]
         predicted_labels = rf.predict(self.x_test)
-        return predicted_labels
+
+        return predicted_labels, pd_test, pd_train
 
     def model_evaluation(self):
         measures = ['Accuracy', 'Sensitivity', 'Specificity', 'f1_score', 'roc_auc_score', 'balanced_accuracy_score']
         ytrue = self.y_test
-        predictions = {'lr_prediction': self.lr_model(), 'rf_prediction': self.rf_model()}
+        predictions = {'lr_prediction': self.lr_model(), 'rf_prediction': self.rf_model()[0]}
         eval_metrics = []
         models = list(predictions.keys())
 
@@ -62,5 +65,6 @@ class classifiers():
 if __name__ == '__main__':
     modeling = classifiers()
     modeling.train_test()
-    df = modeling.model_evaluation()
-    print(df)
+    # df = modeling.model_evaluation()
+    pdtest = modeling.rf_model()[1]
+    print(pdtest)
