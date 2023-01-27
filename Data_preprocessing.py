@@ -20,7 +20,7 @@ class PrepareData:
         analyzed in the preprocessing.
         """
         data = pd.read_csv('C:/Users/assegnista/Downloads/Loan_status_2007-2020Q3.gzip',
-                           usecols=['loan_amnt', 'term', 'grade', 'home_ownership',
+                           usecols=['loan_amnt', 'term', 'grade', 'home_ownership', 'int_rate',
                                     'annual_inc', 'purpose', 'dti', 'delinq_2yrs', 'fico_range_low', 'fico_range_high',
                                     'inq_last_6mths', 'open_acc', 'pub_rec', 'revol_bal', 'total_acc', 'loan_status'])
 
@@ -44,7 +44,10 @@ class PrepareData:
 
     def feature_eng(self, data):
         data['fico'] = data[['fico_range_low', 'fico_range_high']].mean(axis=1)
-        data.drop(['fico_range_low', 'fico_range_high'], axis=1, inplace=True)
+        data['interest'] = data['int_rate'].astype(str).apply(
+            lambda x: ''.join(filter(str.isdigit, x)))
+        data['interest'] = data['interest'].replace('', np.nan).astype(float) / 100
+        data.drop(['fico_range_low', 'fico_range_high', 'int_rate'], axis=1, inplace=True)
         return data
 
     def encoding(self, data):
@@ -69,8 +72,9 @@ class PrepareData:
 
     def getdata(self):
         df_ = self.import_data()
-        df_1 = self.encoding(df_)
-        df_2 = self.feature_eng(df_1)
+
+        df_1 = self.feature_eng(df_)
+        df_2 = self.encoding(df_1)
         df_3 = self.feature_selection(df_2)
 
         return df_3

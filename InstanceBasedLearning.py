@@ -4,6 +4,7 @@ from InstanceSHAP.Data_preprocessing import PrepareData
 from sklearn.ensemble import RandomForestClassifier
 import numpy as np
 import pandas as pd
+from sklearn.metrics.pairwise import euclidean_distances
 
 
 class INSTANCEBASEDSHAP:
@@ -50,7 +51,6 @@ class INSTANCEBASEDSHAP:
     def run_model(self):
         hzero = ((4 / (3 + len(self.x_train))) ** 0.2) * self.get_model_predictions()[2]
         hratio = np.arange(0.25, 1.5, 0.1)
-        indices = Index()
 
         gini_ordinal = []
         gini_instancebased = []
@@ -63,7 +63,7 @@ class INSTANCEBASEDSHAP:
             final_cv_ = []
 
             ##create d matrix
-            d = self.find_similarities()
+            d = pd.DataFrame(euclidean_distances(self.x_train, self.x_test))
 
             ## find cv for all possible values of h
             for h in hratio:
@@ -73,8 +73,8 @@ class INSTANCEBASEDSHAP:
                 r_cv_mat = cv_mat.copy()
 
                 for j in range(len(self.x_train)):
-                    for k in range(len(xtrain)):
-                        cv_mat.iloc[j, k] = self.calc_kernel((ytrain_pred[j] - ytrain_pred[k]) / h_)
+                    for k in range(len(self.x_train)):
+                        cv_mat.iloc[j, k] = self.calc_kernel((self.pd_train[j] - self.pd_train[k]) / h_)
                         r_cv_mat.iloc[j, k] = cv_mat.iloc[j, k] * ret[k]
 
                     final_cv.append(((r_cv_mat.iloc[j, :].sum() / cv_mat.iloc[j, :].sum()) - ret[j]) ** 2)
@@ -87,27 +87,27 @@ class INSTANCEBASEDSHAP:
             kernel_d = d.apply(lambda x: self.calc_kernel(x / h))
             sum_rows = kernel_d.sum(axis=1)
             ##find weights between train and test data
-            weights = pd.DataFrame(np.zeros((len(xtrain), len(xtest))))
-            for i in range(len(xtrain)):
-                for j in range(len(xtest)):
+            weights = pd.DataFrame(np.zeros((len(self.x_train), len(self.x_test))))
+            for i in range(len(self.x_train)):
+                for j in range(len(self.x_test)):
                     weights.iloc[i, j] = kernel_d.iloc[i, j] / sum_rows[i]
 
             weight_treshold = np.mean(weights)
 
-            similarbackgrounddata = xtrain_ml.loc[
+            similarbackgrounddata = self.x_train.loc[
                 (weights.loc[weights.where(weights > weight_treshold).any(axis=1)]).index]
 
             ##find shapley values for two cases, one with the whole train data as the background data and one with the
             # background dataset including only similar observations from train data
 
-            ordinal_shapleyvalues = self.find_explanations(mymodel, xtrain_ml, xtest_ml)
-            instancebased_shapleyvalues = self.find_explanations(mymodel, similarbackgrounddata, xtest_ml)
-            Number_of_similar_observations_in_the_InstanceSHAP.append(instancebased_shapleyvalues.shape[0])
+            #ordinal_shapleyvalues = self.find_explanations(mymodel, xtrain_ml, xtest_ml)
+            #instancebased_shapleyvalues = self.find_explanations(mymodel, similarbackgrounddata, xtest_ml)
+            #Number_of_similar_observations_in_the_InstanceSHAP.append(instancebased_shapleyvalues.shape[0])
 
             ##calculate concentration measure such as Gini index to compare both approaches
-            gini_ordinal.append(indices.gini(ordinal_shapleyvalues))
-            gini_instancebased.append(indices.gini(instancebased_shapleyvalues))
-        return gini_ordinal, gini_instancebased, optimal_h_set, Number_of_similar_observations_in_the_InstanceSHAP
+            #gini_ordinal.append(indices.gini(ordinal_shapleyvalues))
+            #gini_instancebased.append(indices.gini(instancebased_shapleyvalues))
+        return similarbackgrounddata
 
     def find_explanations(self, trainedmodel, backgrounddata, xtest):
         if len(backgrounddata) > 0:
