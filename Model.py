@@ -37,27 +37,10 @@ class classifiers():
         predicted_labels = rf.predict(self.x_test)
         return predicted_labels
 
-    def xgboost_model(self):
-        xgb = xgboost.XGBClassifier(random_state=123).fit(self.x_train, self.y_train)
-        predicted_labels = xgb.predict(self.x_test)
-        return predicted_labels
-
-    def dt_model(self):
-        dt = DecisionTreeClassifier(random_state=123).fit(self.x_train, self.y_train)
-        predicted_labels = dt.predict(self.x_test)
-        return predicted_labels
-
-    def mlp_model(self):
-        mlp = MLPClassifier(random_state=123).fit(self.x_train, self.y_train)
-        predicted_labels = mlp.predict(self.x_test)
-        return predicted_labels
-
     def model_evaluation(self):
         measures = ['Accuracy', 'Sensitivity', 'Specificity', 'f1_score', 'roc_auc_score', 'balanced_accuracy_score']
         ytrue = self.y_test
-        predictions = {'lr_prediction': self.lr_model(), 'rf_prediction': self.rf_model(),
-                       'xgb_prediction': self.xgboost_model(), 'dt_prediction': self.dt_model(),
-                       'mlp_prediction': self.mlp_model()}
+        predictions = {'lr_prediction': self.lr_model(), 'rf_prediction': self.rf_model()}
         eval_metrics = []
         models = list(predictions.keys())
 
