@@ -64,7 +64,7 @@ class classifiers():
 
 if __name__ == '__main__':
     modeling = classifiers()
-    modeling.train_test()
+    xtrain = modeling.train_test()
     # df = modeling.model_evaluation()
-    pdtest = modeling.rf_model()[1]
-    print(pdtest)
+    #pdtest = modeling.rf_model()[1]
+    print(xtrain[0].shape)
