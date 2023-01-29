@@ -54,7 +54,7 @@ class INSTANCEBASEDSHAP:
         similarbackgrounddata = self.x_train.iloc[flat_indices, :]
         return similarbackgrounddata
 
-    def find_explanations(self, backgrounddata):
+    def find_explanations(self, backgrounddata= None):
         rf_model = self.get_model_predictions()[2]
         explainer = shap.TreeExplainer(model=rf_model, data=backgrounddata)
         shapleyvalues = explainer.shap_values(self.x_test)
@@ -64,16 +64,19 @@ class INSTANCEBASEDSHAP:
 
     def Compare_explanations(self):
         indices = Index()
-        Number_of_similar_observations_in_the_InstanceSHAP = []
-        classic_background_indices = random.sample(range(0, len(self.x_train)), len(self.x_test))
-        classic_backgrounddata = self.x_train.iloc[classic_background_indices, :]
-        Classic_shapleyvalues = self.find_explanations(classic_backgrounddata)
-        Instancebased_shapleyvalues = self.find_explanations(self.find_similar_obs())
-        Number_of_similar_observations_in_the_InstanceSHAP.append(Instancebased_shapleyvalues.shape[0])
+        rf_model = self.get_model_predictions()[2]
+        exp_classic = shap.TreeExplainer(model=rf_model)
+        Classic_shapleyvalues = exp_classic.shap_values(self.x_test)
+        classic_shapleyvalues_df = pd.DataFrame(Classic_shapleyvalues[1], columns=self.x_test.columns)
+        global_classicshapleyvalues = np.mean(np.abs(classic_shapleyvalues_df), axis=0)
+        exp_instance = shap.TreeExplainer(model=rf_model, data=self.find_similar_obs())
+        Instancebased_shapleyvalues = exp_instance.shap_values(self.x_test)
+        instance_shapleyvalues_df = pd.DataFrame(Instancebased_shapleyvalues[1], columns=self.x_test.columns)
+        global_instanceshapleyvalues = np.mean(np.abs(instance_shapleyvalues_df), axis=0)
 
         ##calculate concentration measure such as Gini index to compare both approaches
-        gini_classic = indices.gini(Classic_shapleyvalues)
-        gini_instancebased = indices.gini(Instancebased_shapleyvalues)
+        gini_classic = indices.gini(global_classicshapleyvalues)
+        gini_instancebased = indices.gini(global_instanceshapleyvalues)
         return gini_classic, gini_instancebased
 
 if __name__ == '__main__':
