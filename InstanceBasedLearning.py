@@ -38,7 +38,7 @@ class INSTANCEBASEDSHAP:
         self.pd_test = rf.predict_proba(self.x_test)[:, 1]
         self.pd_train = rf.predict_proba(self.x_train)[:, 1]
         sigma_predictedvalue_train = np.std(self.pd_train)
-        return self.pd_test, self.pd_train, sigma_predictedvalue_train, rf
+        return self.pd_test, self.pd_train, rf
 
     def find_similar_obs(self):
         dist = euclidean_distances(self.x_train, self.x_test)
@@ -54,17 +54,12 @@ class INSTANCEBASEDSHAP:
         similarbackgrounddata = self.x_train.iloc[flat_indices, :]
         return similarbackgrounddata
 
-    def find_explanations(self, trainedmodel, backgrounddata, xtest):
-        if len(backgrounddata) > 0:
-            explainer = shap.TreeExplainer(model=trainedmodel, data=backgrounddata)
-            shapleyvalues = explainer.shap_values(xtest)
-            shapleyvalues_df = pd.DataFrame(shapleyvalues[1], columns=xtest.columns)
-            global_shapleyvalues = np.mean(np.abs(shapleyvalues_df), axis=0)
-        else:
-            explainer = shap.TreeExplainer(model=model, data=pd.DataFrame(np.zeros((1, self.x_train.shape[1]))))
-            shapleyvalues = explainer.shap_values(xtest)
-            shapleyvalues_df = pd.DataFrame(shapleyvalues[1], columns=xtest.columns)
-            global_shapleyvalues = np.mean(np.abs(shapleyvalues_df), axis=0)
+    def find_explanations(self, backgrounddata):
+        rf_model = self.get_model_predictions()[2]
+        explainer = shap.TreeExplainer(model=rf_model, data=backgrounddata)
+        shapleyvalues = explainer.shap_values(self.x_test)
+        shapleyvalues_df = pd.DataFrame(shapleyvalues[1], columns=self.x_test.columns)
+        global_shapleyvalues = np.mean(np.abs(shapleyvalues_df), axis=0)
         return global_shapleyvalues
 
     def Compare_explanations(self):
@@ -72,8 +67,8 @@ class INSTANCEBASEDSHAP:
         Number_of_similar_observations_in_the_InstanceSHAP = []
         classic_background_indices = random.sample(range(0, len(self.x_train)), len(self.x_test))
         classic_backgrounddata = self.x_train.iloc[classic_background_indices, :]
-        Classic_shapleyvalues = self.find_explanations(self.get_model_predictions()[3], classic_backgrounddata, self.x_test)
-        Instancebased_shapleyvalues = self.find_explanations(self.get_model_predictions()[3], self.find_similar_obs(), self.x_test)
+        Classic_shapleyvalues = self.find_explanations(classic_backgrounddata)
+        Instancebased_shapleyvalues = self.find_explanations(self.find_similar_obs())
         Number_of_similar_observations_in_the_InstanceSHAP.append(Instancebased_shapleyvalues.shape[0])
 
         ##calculate concentration measure such as Gini index to compare both approaches
