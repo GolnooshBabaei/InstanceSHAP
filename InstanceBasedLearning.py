@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.preprocessing import MinMaxScaler
+from concentrationMetrics import Index
 
 class INSTANCEBASEDSHAP:
 
@@ -65,13 +66,27 @@ class INSTANCEBASEDSHAP:
             global_shapleyvalues = np.mean(np.abs(shapleyvalues_df), axis=0)
         return global_shapleyvalues
 
+    def Compare_explanations(self):
+        indices = Index()
+        Number_of_similar_observations_in_the_InstanceSHAP = []
+        Classic_shapleyvalues = self.find_explanations(self.get_model_predictions()[3], self.read_data()[0], self.read_data()[1])
+        Instancebased_shapleyvalues = self.find_explanations(self.get_model_predictions()[3], self.find_similar_obs(), self.read_data()[1])
+        Number_of_similar_observations_in_the_InstanceSHAP.append(Instancebased_shapleyvalues.shape[0])
+
+        ##calculate concentration measure such as Gini index to compare both approaches
+        gini_classic = indices.gini(Classic_shapleyvalues)
+        gini_instancebased = indices.gini(Instancebased_shapleyvalues)
+        return gini_classic, gini_instancebased
 
 if __name__ == '__main__':
     c = INSTANCEBASEDSHAP()
     data = c.read_data()
-    model = c.get_model_predictions()
-    similar_rows = c.find_similar_obs()
-    shap_vals = c.find_explanations(model[3], similar_rows, data[1])
-    print(shap_vals)
+    #model = c.get_model_predictions()
+    #similar_rows = c.find_similar_obs()
+    #shap_vals = c.find_explanations(model[3], similar_rows, data[1])
+    gini_vals = c.Compare_explanations()
+    print('Gini index for classic SHAP', gini_vals[0])
+    print('Gini index for InstanceSHAP', gini_vals[1])
+    print('InstanceSHAP gini index is {} higher than that of for Classic SHAP'.format(gini_vals[1]-gini_vals[0]))
     #print('number of rows in new extracted data: ', similar_rows.shape)
     #print('number of rows in train data: ', data[0].shape)
