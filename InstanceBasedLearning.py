@@ -5,7 +5,7 @@ from sklearn.ensemble import RandomForestClassifier
 import numpy as np
 import pandas as pd
 from sklearn.metrics.pairwise import euclidean_distances
-
+from sklearn.preprocessing import MinMaxScaler
 
 class INSTANCEBASEDSHAP:
 
@@ -40,12 +40,17 @@ class INSTANCEBASEDSHAP:
 
     def find_similar_obs(self):
 
-        d = pd.DataFrame(euclidean_distances(self.x_train, self.x_test))
-        weights = pd.DataFrame(np.ones((len(self.x_train), len(self.x_test)))) - d
-        weight_treshold = np.mean(weights)
-        similarbackgrounddata = self.x_train.loc[
-            (weights.loc[weights.where(weights > weight_treshold).any(axis=1)]).index]
-
+        dist = euclidean_distances(self.x_train, self.x_test)
+        dist = pd.DataFrame(dist)
+        scaler = MinMaxScaler().fit(dist)
+        d_scaled = pd.DataFrame(scaler.transform(dist), columns=dist.columns)
+        weights = pd.DataFrame(np.ones((len(self.x_train), len(self.x_test)))) - d_scaled
+        weight_treshold = np.mean(weights.values.flatten())
+        indices = []
+        for i in range(len(self.x_test)):
+            indices.append([index for index, item in enumerate(weights[i]) if item == 1])
+        flat_indices = [x for l in indices for x in l]
+        similarbackgrounddata = self.x_train.iloc[flat_indices, :]
         return similarbackgrounddata
 
     def find_explanations(self, trainedmodel, backgrounddata, xtest):
