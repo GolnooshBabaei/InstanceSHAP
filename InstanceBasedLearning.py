@@ -36,10 +36,9 @@ class INSTANCEBASEDSHAP:
         self.pd_test = rf.predict_proba(self.x_test)[:, 1]
         self.pd_train = rf.predict_proba(self.x_train)[:, 1]
         sigma_predictedvalue_train = np.std(self.pd_train)
-        return self.pd_test, self.pd_train, sigma_predictedvalue_train
+        return self.pd_test, self.pd_train, sigma_predictedvalue_train, rf
 
     def find_similar_obs(self):
-
         dist = euclidean_distances(self.x_train, self.x_test)
         dist = pd.DataFrame(dist)
         scaler = MinMaxScaler().fit(dist)
@@ -60,7 +59,7 @@ class INSTANCEBASEDSHAP:
             shapleyvalues_df = pd.DataFrame(shapleyvalues[1], columns=xtest.columns)
             global_shapleyvalues = np.mean(np.abs(shapleyvalues_df), axis=0)
         else:
-            explainer = shap.TreeExplainer(model=model, data=pd.DataFrame(np.zeros((1, xtrain_ml.shape[1]))))
+            explainer = shap.TreeExplainer(model=model, data=pd.DataFrame(np.zeros((1, self.x_train.shape[1]))))
             shapleyvalues = explainer.shap_values(xtest)
             shapleyvalues_df = pd.DataFrame(shapleyvalues[1], columns=xtest.columns)
             global_shapleyvalues = np.mean(np.abs(shapleyvalues_df), axis=0)
@@ -72,7 +71,7 @@ if __name__ == '__main__':
     data = c.read_data()
     model = c.get_model_predictions()
     similar_rows = c.find_similar_obs()
-
-    print(similar_rows)
-    print('number of rows in new extracted data: ', similar_rows.shape)
-    print('number of rows in train data: ', data[0].shape)
+    shap_vals = c.find_explanations(model[3], similar_rows, data[1])
+    print(shap_vals)
+    #print('number of rows in new extracted data: ', similar_rows.shape)
+    #print('number of rows in train data: ', data[0].shape)
