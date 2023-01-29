@@ -7,6 +7,7 @@ import pandas as pd
 from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.preprocessing import MinMaxScaler
 from concentrationMetrics import Index
+import random
 
 class INSTANCEBASEDSHAP:
 
@@ -23,7 +24,7 @@ class INSTANCEBASEDSHAP:
         data = PrepareData.getdata(data_class)
         data = data.iloc[:1000, :]
         ## To reduce the computation time, I use 0.3 of each class available in the dataset
-        data = data.groupby('label', group_keys=False).apply(lambda x: x.sample(frac=0.5))
+        #data = data.groupby('label', group_keys=False).apply(lambda x: x.sample(frac=0.5))
         x = data.drop('label', axis=1)
         y = data['label']
         self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(x, y, test_size=0.3, stratify=y)
@@ -69,8 +70,10 @@ class INSTANCEBASEDSHAP:
     def Compare_explanations(self):
         indices = Index()
         Number_of_similar_observations_in_the_InstanceSHAP = []
-        Classic_shapleyvalues = self.find_explanations(self.get_model_predictions()[3], self.read_data()[0], self.read_data()[1])
-        Instancebased_shapleyvalues = self.find_explanations(self.get_model_predictions()[3], self.find_similar_obs(), self.read_data()[1])
+        classic_background_indices = random.sample(range(0, len(self.x_train)), len(self.x_test))
+        classic_backgrounddata = self.x_train.iloc[classic_background_indices, :]
+        Classic_shapleyvalues = self.find_explanations(self.get_model_predictions()[3], classic_backgrounddata, self.x_test)
+        Instancebased_shapleyvalues = self.find_explanations(self.get_model_predictions()[3], self.find_similar_obs(), self.x_test)
         Number_of_similar_observations_in_the_InstanceSHAP.append(Instancebased_shapleyvalues.shape[0])
 
         ##calculate concentration measure such as Gini index to compare both approaches
@@ -81,6 +84,10 @@ class INSTANCEBASEDSHAP:
 if __name__ == '__main__':
     c = INSTANCEBASEDSHAP()
     data = c.read_data()
+    #print(data[0].head())
+    #print(data[1].head())
+    #print(data[0].shape)
+    #print(data[1].shape)
     #model = c.get_model_predictions()
     #similar_rows = c.find_similar_obs()
     #shap_vals = c.find_explanations(model[3], similar_rows, data[1])
