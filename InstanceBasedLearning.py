@@ -9,8 +9,8 @@ from sklearn.preprocessing import MinMaxScaler
 from concentrationMetrics import Index
 import random
 
-class INSTANCEBASEDSHAP:
 
+class INSTANCEBASEDSHAP:
     def __init__(self):
         self.y_test = None
         self.y_train = None
@@ -73,11 +73,11 @@ class INSTANCEBASEDSHAP:
         Instancebased_shapleyvalues = exp_instance.shap_values(self.x_test)
         instance_shapleyvalues_df = pd.DataFrame(Instancebased_shapleyvalues[1], columns=self.x_test.columns)
         global_instanceshapleyvalues = np.mean(np.abs(instance_shapleyvalues_df), axis=0)
-
         ##calculate concentration measure such as Gini index to compare both approaches
         gini_classic = indices.gini(global_classicshapleyvalues)
         gini_instancebased = indices.gini(global_instanceshapleyvalues)
         return gini_classic, gini_instancebased
+
 
 if __name__ == '__main__':
     c = INSTANCEBASEDSHAP()

@@ -40,7 +40,6 @@ class INSTANCEBASEDSHAP:
 
         self.pd_test = rf.predict_proba(self.x_test)[:, 1]
         self.pd_train = rf.predict_proba(self.x_train)[:, 1]
-        sigma_predictedvalue_train = np.std(self.pd_train)
         return self.pd_test, self.pd_train, rf
 
     def kde(self, n):
@@ -52,7 +51,7 @@ class INSTANCEBASEDSHAP:
         grid.fit(data)
         print("bandwidth selcted : ", grid.best_estimator_.bandwidth)
         kde = grid.best_estimator_
-        new_data = kde.sample(300, random_state=0)
+        new_data = kde.sample(100, random_state=0)
         new_data = pca.inverse_transform(new_data)
         new_data = pd.DataFrame(new_data)
 
@@ -66,7 +65,7 @@ class INSTANCEBASEDSHAP:
         classic_shapleyvalues_df = pd.DataFrame(Classic_shapleyvalues[1], columns=self.x_test.columns)
         global_classicshapleyvalues = np.mean(np.abs(classic_shapleyvalues_df), axis=0)
         exp_instance = shap.TreeExplainer(model=rf_model, data=self.kde(15))
-        Instancebased_shapleyvalues = exp_instance.shap_values(self.x_test)
+        Instancebased_shapleyvalues = exp_instance.shap_values(self.x_test, check_additivity=False)
         instance_shapleyvalues_df = pd.DataFrame(Instancebased_shapleyvalues[1], columns=self.x_test.columns)
         global_instanceshapleyvalues = np.mean(np.abs(instance_shapleyvalues_df), axis=0)
 
